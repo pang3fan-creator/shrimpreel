@@ -111,6 +111,19 @@ export const site = {
       // genjutsu-1.0：480p $0.117/s、720p $0.273/s、1080p $0.78/s。motion_control 计费秒数 = 源视频秒数四舍五入、至少 4 秒；replace_object 向上取整
       costCentsPerSecond: 11.7,
     },
+    // kie.ai 聚合网关（可选，VIDEO_PROVIDER=kie）：微信支付可直接充值，一个 key 能换模型。
+    // mode='motion' 时要照片 + 动作参考视频（Kling Motion Control、Wan Animate）；
+    // mode='reference' 时只要照片 + prompt（Seedance、MiniMax 的 Reference-to-Video，不保动作）。
+    kie: {
+      model: 'kling-2.6/motion-control',
+      mode: 'motion' as 'motion' | 'reference',
+      prompt: 'The person in the reference image performs the exact moves from the reference video. Keep their face, hair and outfit.',
+      resolution: '720p',
+      // 动作控制按参考视频秒数计费；以 https://kie.ai/zh-CN/pricing 当前报价为准
+      costCentsPerSecond: 4,
+      // 照片和参考视频谁决定镜头朝向：image = 跟着照片，video = 跟着参考视频
+      characterOrientation: 'image' as 'image' | 'video',
+    },
   },
 
   durations: [
