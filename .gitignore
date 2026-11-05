@@ -20,3 +20,6 @@ playwright-report/
 !.claude/skills/sync-upstream/
 !.claude/skills/launch-audit/
 *.local.md
+
+# 本机笔记（模板的现状、维护、上站说明），不进仓库
+/local/
