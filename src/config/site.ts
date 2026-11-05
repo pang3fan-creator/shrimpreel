@@ -119,8 +119,9 @@ export const site = {
       mode: 'motion' as 'motion' | 'reference',
       prompt: 'The person in the reference image performs the exact moves from the reference video. Keep their face, hair and outfit.',
       resolution: '720p',
-      // 动作控制按参考视频秒数计费；以 https://kie.ai/zh-CN/pricing 当前报价为准
-      costCentsPerSecond: 4,
+      // 动作控制按参考视频秒数计费。实测：8.85 秒源片扣 97.38 积分 ≈ $0.49 ≈ 5.5 美分/秒
+      // （https://kie.ai/zh-CN/pricing 报价 $0.055/秒起），这里向上取整留余量
+      costCentsPerSecond: 6,
       // 照片和参考视频谁决定镜头朝向：image = 跟着照片，video = 跟着参考视频
       characterOrientation: 'image' as 'image' | 'video',
     },
