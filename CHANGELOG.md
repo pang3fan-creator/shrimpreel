@@ -4,6 +4,45 @@ Notable changes to the template. Derived sites pick them up with `git merge` fro
 
 中文说明在每条下方。
 
+## 2026-11-08
+
+### Fixed: phone photos no longer fail to upload; photos the video model can't take are rejected before upload
+
+- Phone originals (7–9 MB) made `POST /api/uploads` end with `exceededCpu` on Workers Free (503 for the user): `base64Encode` built the moderation payload one byte at a time, about 2 s of CPU for 8 MB. It now converts in 32 KB chunks, and the browser shrinks photos over 1.5 MB, or with a long side over 2048 px, to a 2048 px JPEG first (`src/lib/prepare-photo.ts`, used by the generator and the phone upload page; EXIF orientation applied, a white background under transparent PNGs, formats the browser can't decode are sent as they are).
+- New `site.upload.minSide` (300) and `site.upload.maxRatio` (2.5) follow Kling Motion Control's limits for reference images (each side at least 300 px, aspect ratio between 1:2.5 and 2.5:1). Photos outside them were accepted and then failed upstream; now the browser shows "pick another photo" (`photo_too_small` / `photo_bad_ratio`) and uploads nothing, and `readImageFile` re-checks the size from the JPEG / PNG / WebP header and returns 422 with the same codes for both `/api/uploads` and `/api/handoff/photo`. The shared e2e photo `tests/fixtures/photo.jpg` is now 300×400 (`scripts/generate-placeholder-media.mjs`). Contributed by ken-fs in #3.
+
+Upgrading a site: merge upstream. `src/config/site.ts` and `src/content/en.ts`, `zh.ts` are site files, so the merge keeps your versions and typecheck fails until you add, in `site.ts`, `minSide: 300` and `maxRatio: 2.5` under `upload`, and in both content files the `errors.photo_too_small` and `errors.photo_bad_ratio` strings (copy them from the template). If your video provider has different reference-image limits, set those two values to its limits. `src/lib/prepare-photo.ts`, `src/server/media.ts`, `src/server/util.ts`, `src/components/Generator.tsx` and the phone upload page are template files; take the template's version on conflict.
+
+修复：手机原图不再上传失败；视频模型收不了的照片在上传前就拦下。
+- 手机原图（7–9 MB）让 `POST /api/uploads` 在 Workers 免费计划上以 `exceededCpu` 结束（用户看到 503）：`base64Encode` 逐字节拼字符串，8 MB 照片送审核前要约 2 秒 CPU。现在每次转 32 KB；浏览器先把大于 1.5 MB 或长边超过 2048 px 的照片缩成长边 2048 px 的 JPEG 再传（`src/lib/prepare-photo.ts`，生成器和手机传图页共用；按 EXIF 摆正，透明 PNG 先铺白底，浏览器解不开的格式原样传）。
+- 新增 `site.upload.minSide`（300）和 `site.upload.maxRatio`（2.5），取自 Kling Motion Control 对参考图的限制（宽高都不小于 300 px，长宽比 1:2.5 到 2.5:1）。超出的照片以前会先被接受、到上游再失败；现在浏览器直接提示换一张（`photo_too_small` / `photo_bad_ratio`），不上传；`readImageFile` 从 JPEG / PNG / WebP 文件头再查一遍尺寸，`/api/uploads` 和 `/api/handoff/photo` 都按同样的错误码返回 422。e2e 通用照片 `tests/fixtures/photo.jpg` 改为 300×400（`scripts/generate-placeholder-media.mjs`）。由 ken-fs 在 #3 贡献。
+
+站点升级：合并 upstream。`src/config/site.ts` 和 `src/content/en.ts`、`zh.ts` 属于站点文件，合并后保留站点的版本，补上下面几项前 typecheck 会报错：`site.ts` 的 `upload` 里加 `minSide: 300`、`maxRatio: 2.5`；两份文案的 `errors` 里加 `photo_too_small`、`photo_bad_ratio`（从模板复制）。视频服务商对参考图的限制不同时，把这两个值改成它的限制。`src/lib/prepare-photo.ts`、`src/server/media.ts`、`src/server/util.ts`、`src/components/Generator.tsx` 和手机传图页属于模板文件，冲突时取模板的版本。
+
+### Fixed: full-page browser translation no longer crashes pages
+
+- With Chrome / Google Translate translating the whole page, picking a photo in the generator (or any later React update in a translated block) threw `NotFoundError` from `insertBefore` / `removeChild`, and the root error boundary replaced the page with the error screen. `src/lib/translate-guard.ts` is now installed before hydration (the React issue #11538 patch): when the reference node has been moved into the translator's `<font>` nodes, the new node goes before the child that now holds it, and a moved node is removed from its current parent. Translation keeps working; untouched DOM takes the original code path. Contributed by ken-fs in #4.
+
+Upgrading a site: merge upstream. `src/lib/translate-guard.ts` and `src/router.tsx` are template files; if `src/router.tsx` conflicts, take the template's version.
+
+修复：浏览器整页翻译不再让页面崩到错误页。
+- 开着 Chrome / Google 整页翻译时，在生成器里选照片（或翻译过的区块之后任何一次 React 更新）会从 `insertBefore` / `removeChild` 抛 `NotFoundError`，根路由错误边界把整页换成错误页。现在水合前装上 `src/lib/translate-guard.ts`（React issue #11538 的补丁）：参照节点被挪进翻译的 `<font>` 时，插到它现在所在的那个子节点前面；被挪走的节点从它现在的父节点删除。翻译照常可用，DOM 没被改过时走原来的方法。由 ken-fs 在 #4 贡献。
+
+站点升级：合并 upstream。`src/lib/translate-guard.ts`、`src/router.tsx` 属于模板文件，`src/router.tsx` 冲突时取模板的版本。
+
+## 2026-11-07
+
+### Added: optional spec sheet on the home page
+
+- New home content block `specs` (`{ eyebrow, title, rows: [{ label, value }] }`), rendered as a definition list right after "What is". One fact per row: who can star, upload formats, styles, lengths, output format, price, credit expiry, render time and refunds. The template default reads its values from `site`. AI answers tend to quote spec lists like this when they recommend a tool; set the block to `null` to hide it.
+
+Upgrading a site: merge upstream. `src/content/en.ts` and `zh.ts` are site files, so the merge keeps your copy and typecheck fails until you add `specs` to both (the template's block is a good start, or `specs: null`). Write only facts the rest of your copy already promises, for example that pets are accepted.
+
+新增：首页可选规格表。
+- 首页新增文案区块 `specs`（`{ eyebrow, title, rows: [{ label, value }] }`），在 What is 之后渲染为定义列表，一行一个事实：谁能出镜、上传格式、风格、时长、成片格式、价格、积分有效期、生成时间和失败退款。模板默认值从 `site` 读取。AI 推荐工具时常照搬这类规格；设为 `null` 就不渲染。
+
+站点升级：合并 upstream。`src/content/en.ts`、`zh.ts` 属于站点文件，合并后保留站点的文案，两份都补上 `specs` 前 typecheck 会报错（可以从模板的区块改起，或者写 `specs: null`）。只写站内其他文案已经承诺的事，例如支持宠物照片。
+
 ## 2026-11-05
 
 ### Changed: smaller e2e reports in CI

@@ -18,6 +18,11 @@ export function zh(s: S): Content {
   const photoRetention = uploadDays > 0 ? `在上传 ${uploadDays} 天后自动删除` : '保留到你主动删除为止'
   const videoRetention = outputDays > 0 ? `在完成 ${outputDays} 天后自动删除` : '保留到你主动删除为止'
   const { ga4Id, cfBeaconToken, umamiWebsiteId, clarityId } = s.analytics
+  const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`
+  const cheapest = [...s.packages].sort((x, y) => x.priceCents - y.priceCents)[0]!
+  const typeNames: Record<string, string> = { 'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP' }
+  const uploadTypes = s.upload.contentTypes.map((t) => typeNames[t] ?? t).join('、')
+  const uploadMb = Math.round(s.upload.maxBytes / 1024 / 1024)
   return {
     styles,
     meta: {
@@ -168,6 +173,20 @@ export function zh(s: S): Content {
         `${b} 是专门围绕这段视频打造的 AI 视频生成器。不用学动作、不用拍摄，上传一张照片，模型就会按原版的节奏和机位生成由你出演的版本。`,
       ],
       guide: `阅读完整的 ${k} 热门解读`,
+    },
+    specs: {
+      eyebrow: '一览',
+      title: `${b} 规格`,
+      rows: [
+        { label: '上传', value: `一张清晰的单人照片，${uploadTypes}，不超过 ${uploadMb} MB` },
+        { label: '风格', value: s.styles.map((style) => styles[style.id].name).join('、') },
+        { label: '视频时长', value: `${s.durations.map((d) => d.seconds).join('、')} 秒` },
+        { label: '成片', value: `竖屏 ${s.template.aspectRatio} MP4，无水印` },
+        { label: '价格', value: `1 积分 = 1 秒视频；积分包 ${usd(cheapest.priceCents)} 起（${cheapest.credits} 积分）` },
+        { label: '积分', value: subs ? '积分包永不过期；订阅积分在当月结束时作废' : '永不过期，无订阅' },
+        { label: '生成时间', value: '几分钟' },
+        { label: '生成失败', value: '自动退还积分' },
+      ],
     },
     features: {
       eyebrow: '功能',
@@ -530,6 +549,8 @@ export function zh(s: S): Content {
       daily_limit: '今天的生成名额已满，请明天再试，本次没有扣积分。',
       rate_limited: '请求过于频繁，请稍后再试。',
       file_too_large: '文件超过 10 MB。',
+      photo_too_small: `照片太小，脸换不上去。请换一张短边至少 ${s.upload.minSide} 像素的照片。`,
+      photo_bad_ratio: `这张照片太窄或太扁，视频模型处理不了。请换一张长边不超过短边 ${s.upload.maxRatio} 倍的照片（普通自拍、半身照都可以；长截图请先裁一下）。`,
       length_required: '浏览器上传文件的方式不受支持，请换个浏览器重试。',
       unsupported_file_type: '请上传 JPG、PNG 或 WebP 图片。',
       invalid_upload: '请重新上传照片。',
